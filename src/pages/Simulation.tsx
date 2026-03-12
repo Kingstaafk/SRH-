@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Camera, Video, RefreshCw } from "lucide-react";
+import { Camera, Video } from "lucide-react";
 import { SignalState } from "@/lib/traffic-data";
 import { useTrafficSimulation } from "@/hooks/use-traffic-simulation";
+import TrafficCameraCanvas from "@/components/TrafficCameraCanvas";
 
 function TrafficLight({ state }: { state: SignalState }) {
   return (
@@ -24,38 +25,13 @@ const DIR_POSITIONS: Record<string, string> = {
   west: "left-2 top-1/2 -translate-y-1/2",
 };
 
-// Free live traffic camera streams (YouTube Live)
-const CAMERA_FEEDS = [
-  {
-    id: "jackson-hole",
-    label: "Jackson Hole, WY — Town Square",
-    embedUrl: "https://www.youtube.com/embed/psfFJR3vZ78?autoplay=1&mute=1",
-  },
-  {
-    id: "abbey-road",
-    label: "Abbey Road, London — Crossing Cam",
-    embedUrl: "https://www.youtube.com/embed/b1UEzwm0kJA?autoplay=1&mute=1",
-  },
-  {
-    id: "okc-traffic",
-    label: "Oklahoma City — Traffic Cam",
-    embedUrl: "https://www.youtube.com/embed/F8J2wBMrtig?autoplay=1&mute=1",
-  },
-  {
-    id: "shibuya",
-    label: "Shibuya Crossing, Tokyo",
-    embedUrl: "https://www.youtube.com/embed/DjdUEyjx8GM?autoplay=1&mute=1",
-  },
-];
-
 export default function Simulation() {
   const { intersections } = useTrafficSimulation(2000);
   const selected = intersections[0];
 
   const [phase, setPhase] = useState(0);
   const [timer, setTimer] = useState(selected.signal_time);
-  const [activeCam, setActiveCam] = useState(0);
-  const [camKey, setCamKey] = useState(0);
+  const [camCounts, setCamCounts] = useState({ cars: 0, bikes: 0, buses: 0, trucks: 0 });
 
   useEffect(() => {
     const greenTime = selected.signal_time;
@@ -74,13 +50,15 @@ export default function Simulation() {
     return () => clearInterval(interval);
   }, [phase, selected.signal_time]);
 
-  const getState = (dir: string): SignalState => {
+  const getState = useCallback((dir: string): SignalState => {
     const isNS = dir === "north" || dir === "south";
     if (phase === 0) return isNS ? "GREEN" : "RED";
     if (phase === 1) return isNS ? "YELLOW" : "RED";
     if (phase === 2) return isNS ? "RED" : "GREEN";
     return isNS ? "RED" : "YELLOW";
-  };
+  }, [phase]);
+
+  const totalDetected = camCounts.cars + camCounts.bikes + camCounts.buses + camCounts.trucks;
 
   return (
     <div className="space-y-6">
@@ -89,57 +67,34 @@ export default function Simulation() {
         <p className="text-sm text-muted-foreground">4-way intersection — {selected.name}</p>
       </div>
 
-      {/* Live Camera Feed */}
+      {/* Simulated Traffic Camera Feed */}
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <div className="flex items-center justify-between border-b px-5 py-3">
           <div className="flex items-center gap-2">
             <Camera className="h-4 w-4 text-traffic-red" />
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Live Traffic Camera</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Traffic Camera — AI Detection Feed</h3>
             <span className="ml-1 flex items-center gap-1 rounded-full bg-traffic-red/15 px-2 py-0.5 text-[10px] font-bold text-traffic-red">
               <span className="h-1.5 w-1.5 rounded-full bg-traffic-red animate-pulse" />
               LIVE
             </span>
           </div>
-          <button
-            onClick={() => setCamKey((k) => k + 1)}
-            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-muted-foreground hover:bg-secondary transition-colors"
-          >
-            <RefreshCw className="h-3 w-3" />
-            Refresh
-          </button>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1"><Video className="h-3 w-3" /> CAM-01</span>
+            <span className="font-mono">{totalDetected} vehicles</span>
+          </div>
         </div>
 
-        {/* Camera selector tabs */}
-        <div className="flex gap-1 overflow-x-auto border-b px-4 py-2 bg-muted/30">
-          {CAMERA_FEEDS.map((cam, idx) => (
-            <button
-              key={cam.id}
-              onClick={() => setActiveCam(idx)}
-              className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                activeCam === idx
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
-            >
-              <Video className="h-3 w-3" />
-              {cam.label}
-            </button>
+        <div className="bg-black">
+          <TrafficCameraCanvas getSignalState={getState} onVehicleCount={setCamCounts} />
+        </div>
+
+        <div className="grid grid-cols-4 gap-px bg-border">
+          {(["cars", "bikes", "buses", "trucks"] as const).map((type) => (
+            <div key={type} className="bg-card px-4 py-2 text-center">
+              <p className="text-[10px] font-semibold uppercase text-muted-foreground">{type}</p>
+              <p className="text-lg font-bold font-mono">{camCounts[type]}</p>
+            </div>
           ))}
-        </div>
-
-        {/* Video embed */}
-        <div className="relative bg-black" style={{ aspectRatio: "16/9", maxHeight: 400 }}>
-          <iframe
-            key={`${activeCam}-${camKey}`}
-            src={CAMERA_FEEDS[activeCam].embedUrl}
-            title={CAMERA_FEEDS[activeCam].label}
-            className="absolute inset-0 h-full w-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-        <div className="px-5 py-2 text-[11px] text-muted-foreground bg-muted/20">
-          📹 {CAMERA_FEEDS[activeCam].label} — Public feed via YouTube Live. In production, this would connect to your YOLOv8 AI detection pipeline.
         </div>
       </div>
 
@@ -147,13 +102,9 @@ export default function Simulation() {
         {/* Intersection visual */}
         <div className="flex items-center justify-center rounded-xl border bg-card p-6 shadow-sm" style={{ minHeight: 420 }}>
           <div className="relative h-80 w-80">
-            {/* Roads */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-24 bg-muted-foreground/10 rounded" />
             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full h-24 bg-muted-foreground/10 rounded" />
-            {/* Center */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-24 w-24 bg-muted-foreground/20 rounded" />
-
-            {/* Traffic lights */}
             {DIRECTIONS.map((dir) => (
               <div key={dir} className={`absolute ${DIR_POSITIONS[dir]} flex flex-col items-center gap-1`}>
                 <span className="text-[10px] font-bold text-muted-foreground">{DIR_LABELS[dir]}</span>
@@ -196,24 +147,24 @@ export default function Simulation() {
           </div>
 
           <div className="rounded-xl border bg-card p-5 shadow-sm space-y-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Vehicle Data</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">AI Detection Data</h3>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Cars</span><span className="font-mono font-bold">{selected.cars}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Bikes</span><span className="font-mono font-bold">{selected.bikes}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Buses</span><span className="font-mono font-bold">{selected.buses}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Trucks</span><span className="font-mono font-bold">{selected.trucks}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Cars</span><span className="font-mono font-bold">{camCounts.cars}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Bikes</span><span className="font-mono font-bold">{camCounts.bikes}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Buses</span><span className="font-mono font-bold">{camCounts.buses}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Trucks</span><span className="font-mono font-bold">{camCounts.trucks}</span></div>
             </div>
             <div className="flex justify-between border-t pt-2 text-sm">
               <span className="text-muted-foreground font-medium">Total</span>
-              <span className="font-mono font-bold">{selected.vehicle_count}</span>
+              <span className="font-mono font-bold">{totalDetected}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground font-medium">Density</span>
               <span className={`font-bold ${
-                selected.traffic_level === "HIGH" ? "text-traffic-red" :
-                selected.traffic_level === "MEDIUM" ? "text-traffic-yellow" :
+                totalDetected > 25 ? "text-traffic-red" :
+                totalDetected > 10 ? "text-traffic-yellow" :
                 "text-traffic-green"
-              }`}>{selected.traffic_level}</span>
+              }`}>{totalDetected > 25 ? "HIGH" : totalDetected > 10 ? "MEDIUM" : "LOW"}</span>
             </div>
           </div>
         </div>
