@@ -26,9 +26,9 @@ export default function About() {
         <section className="rounded-xl border bg-card p-6 shadow-sm space-y-3">
           <h3 className="text-base font-semibold text-foreground">Signal Control Algorithm</h3>
           <div className="font-mono text-xs bg-muted p-4 rounded-lg">
-            <p>if vehicle_count &lt; 10 → signal_time = 20s</p>
-            <p>if vehicle_count 10–25 → signal_time = 40s</p>
-            <p>if vehicle_count &gt; 25 → signal_time = 60s</p>
+            <p>{"if vehicle_count < 10 → signal_time = 20s"}</p>
+            <p>{"if vehicle_count 10–25 → signal_time = 40s"}</p>
+            <p>{"if vehicle_count > 25 → signal_time = 60s"}</p>
           </div>
         </section>
 
@@ -66,28 +66,27 @@ export default function About() {
 
         <section className="rounded-xl border bg-card p-6 shadow-sm space-y-3">
           <h3 className="text-base font-semibold text-foreground">Backend API Reference</h3>
-          <div className="font-mono text-xs bg-muted p-4 rounded-lg">
-            <p>POST /api/traffic-data</p>
-            <pre className="mt-2">{`{
+          <pre className="font-mono text-xs bg-muted p-4 rounded-lg whitespace-pre-wrap">{`POST /api/traffic-data
+
+{
   "intersection_id": "INT_01",
   "vehicle_count": 28,
   "traffic_level": "HIGH",
   "signal_time": 60,
   "timestamp": "2026-03-12T10:30:00"
 }`}</pre>
-          </div>
         </section>
 
         <section className="rounded-xl border bg-card p-6 shadow-sm space-y-3">
           <h3 className="text-base font-semibold text-foreground">Python Backend Code (main.py)</h3>
-          <div className="font-mono text-xs bg-muted p-4 rounded-lg whitespace-pre-wrap">{`from fastapi import FastAPI
+          <pre className="font-mono text-xs bg-muted p-4 rounded-lg whitespace-pre-wrap">{`from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from pydantic import BaseModel
-from datetime import datetime
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["*"],
+    allow_methods=["*"], allow_headers=["*"])
 
 client = MongoClient("mongodb://localhost:27017")
 db = client["smart_traffic"]
@@ -107,14 +106,14 @@ def post_traffic(data: TrafficData):
 
 @app.get("/api/traffic-data")
 def get_traffic():
-    results = list(collection.find({}, {"_id": 0}).sort("timestamp", -1).limit(20))
+    results = list(collection.find({}, {"_id": 0})
+        .sort("timestamp", -1).limit(20))
     return results`}</pre>
-          </div>
         </section>
 
         <section className="rounded-xl border bg-card p-6 shadow-sm space-y-3">
           <h3 className="text-base font-semibold text-foreground">AI Detection Script (vehicle_detection.py)</h3>
-          <div className="font-mono text-xs bg-muted p-4 rounded-lg whitespace-pre-wrap">{`from ultralytics import YOLO
+          <pre className="font-mono text-xs bg-muted p-4 rounded-lg whitespace-pre-wrap">{`from ultralytics import YOLO
 import cv2, requests, time
 
 model = YOLO("yolov8n.pt")
@@ -135,7 +134,8 @@ while cap.isOpened():
             if cls in CLASSES:
                 counts[CLASSES[cls]] += 1
     total = sum(counts.values())
-    level = "LOW" if total <= 10 else "MEDIUM" if total <= 25 else "HIGH"
+    level = "LOW" if total <= 10 else \\
+        "MEDIUM" if total <= 25 else "HIGH"
     sig = 20 if total < 10 else 40 if total <= 25 else 60
     requests.post(API_URL, json={
         "intersection_id": "INT_01",
@@ -149,7 +149,6 @@ while cap.isOpened():
         break
 cap.release()
 cv2.destroyAllWindows()`}</pre>
-          </div>
         </section>
       </div>
     </div>
