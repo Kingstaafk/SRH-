@@ -6,9 +6,9 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "smart-traffic-flow.onrender.com",
+    host: "True",
     port: 8080,
-
+    allowedHosts: ["smart-traffic-flow.onrender.com"],
     hmr: {
       overlay: false,
     },
