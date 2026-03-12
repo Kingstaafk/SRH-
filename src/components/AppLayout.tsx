@@ -5,7 +5,7 @@ const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/map", label: "Traffic Map", icon: Map },
   { to: "/simulation", label: "Simulation", icon: MonitorPlay },
-  { to: "/about", label: "About", icon: Info },
+
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -31,11 +31,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link
                   key={to}
                   to={to}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    active
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  }`}
+                    }`}
                 >
                   <Icon className="h-4 w-4" />
                   <span className="hidden sm:inline">{label}</span>
