@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Camera, Video, RefreshCw } from "lucide-react";
 import { SignalState } from "@/lib/traffic-data";
 import { useTrafficSimulation } from "@/hooks/use-traffic-simulation";
 
@@ -16,7 +17,6 @@ function TrafficLight({ state }: { state: SignalState }) {
 const DIRECTIONS = ["north", "east", "south", "west"] as const;
 const DIR_LABELS: Record<string, string> = { north: "N", east: "E", south: "S", west: "W" };
 
-// Positions for each direction's light around the intersection
 const DIR_POSITIONS: Record<string, string> = {
   north: "top-2 left-1/2 -translate-x-1/2",
   south: "bottom-2 left-1/2 -translate-x-1/2",
@@ -24,12 +24,38 @@ const DIR_POSITIONS: Record<string, string> = {
   west: "left-2 top-1/2 -translate-y-1/2",
 };
 
+// Free live traffic camera streams (YouTube Live)
+const CAMERA_FEEDS = [
+  {
+    id: "jackson-hole",
+    label: "Jackson Hole, WY — Town Square",
+    embedUrl: "https://www.youtube.com/embed/psfFJR3vZ78?autoplay=1&mute=1",
+  },
+  {
+    id: "abbey-road",
+    label: "Abbey Road, London — Crossing Cam",
+    embedUrl: "https://www.youtube.com/embed/b1UEzwm0kJA?autoplay=1&mute=1",
+  },
+  {
+    id: "okc-traffic",
+    label: "Oklahoma City — Traffic Cam",
+    embedUrl: "https://www.youtube.com/embed/F8J2wBMrtig?autoplay=1&mute=1",
+  },
+  {
+    id: "shibuya",
+    label: "Shibuya Crossing, Tokyo",
+    embedUrl: "https://www.youtube.com/embed/DjdUEyjx8GM?autoplay=1&mute=1",
+  },
+];
+
 export default function Simulation() {
   const { intersections } = useTrafficSimulation(2000);
-  const selected = intersections[0]; // Simulate INT_01
+  const selected = intersections[0];
 
-  const [phase, setPhase] = useState(0); // 0=N/S green, 1=N/S yellow, 2=E/W green, 3=E/W yellow
+  const [phase, setPhase] = useState(0);
   const [timer, setTimer] = useState(selected.signal_time);
+  const [activeCam, setActiveCam] = useState(0);
+  const [camKey, setCamKey] = useState(0);
 
   useEffect(() => {
     const greenTime = selected.signal_time;
@@ -61,6 +87,60 @@ export default function Simulation() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Signal Simulation</h2>
         <p className="text-sm text-muted-foreground">4-way intersection — {selected.name}</p>
+      </div>
+
+      {/* Live Camera Feed */}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between border-b px-5 py-3">
+          <div className="flex items-center gap-2">
+            <Camera className="h-4 w-4 text-traffic-red" />
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Live Traffic Camera</h3>
+            <span className="ml-1 flex items-center gap-1 rounded-full bg-traffic-red/15 px-2 py-0.5 text-[10px] font-bold text-traffic-red">
+              <span className="h-1.5 w-1.5 rounded-full bg-traffic-red animate-pulse" />
+              LIVE
+            </span>
+          </div>
+          <button
+            onClick={() => setCamKey((k) => k + 1)}
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-muted-foreground hover:bg-secondary transition-colors"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Refresh
+          </button>
+        </div>
+
+        {/* Camera selector tabs */}
+        <div className="flex gap-1 overflow-x-auto border-b px-4 py-2 bg-muted/30">
+          {CAMERA_FEEDS.map((cam, idx) => (
+            <button
+              key={cam.id}
+              onClick={() => setActiveCam(idx)}
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                activeCam === idx
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <Video className="h-3 w-3" />
+              {cam.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Video embed */}
+        <div className="relative bg-black" style={{ aspectRatio: "16/9", maxHeight: 400 }}>
+          <iframe
+            key={`${activeCam}-${camKey}`}
+            src={CAMERA_FEEDS[activeCam].embedUrl}
+            title={CAMERA_FEEDS[activeCam].label}
+            className="absolute inset-0 h-full w-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+        <div className="px-5 py-2 text-[11px] text-muted-foreground bg-muted/20">
+          📹 {CAMERA_FEEDS[activeCam].label} — Public feed via YouTube Live. In production, this would connect to your YOLOv8 AI detection pipeline.
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
