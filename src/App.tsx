@@ -7,6 +7,7 @@ import AppLayout from "@/components/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import TrafficMap from "@/pages/TrafficMap";
 import Simulation from "@/pages/Simulation";
+import CameraTraining from "@/pages/CameraTraining";
 
 import NotFound from "@/pages/NotFound";
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/map" element={<TrafficMap />} />
             <Route path="/simulation" element={<Simulation />} />
+            <Route path="/camera-training" element={<CameraTraining />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppLayout>

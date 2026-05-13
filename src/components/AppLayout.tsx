@@ -1,10 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Map, MonitorPlay, Info } from "lucide-react";
+import { LayoutDashboard, Map, MonitorPlay, Camera } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/map", label: "Traffic Map", icon: Map },
   { to: "/simulation", label: "Simulation", icon: MonitorPlay },
+  { to: "/camera-training", label: "Camera Training", icon: Camera },
 
 ];
 
@@ -32,8 +33,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   key={to}
                   to={to}
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                     }`}
                 >
                   <Icon className="h-4 w-4" />

@@ -1,7 +1,8 @@
-import { Car, Bike, Bus, Truck, Activity, Timer, Radio } from "lucide-react";
+import { Car, Bike, Bus, Truck, Activity, Timer, Radio, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTrafficSimulation } from "@/hooks/use-traffic-simulation";
 import { IntersectionData } from "@/lib/traffic-data";
+import { Button } from "@/components/ui/button";
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: React.ElementType; color: string }) {
   return (
@@ -47,7 +48,18 @@ function IntersectionRow({ data }: { data: IntersectionData }) {
 }
 
 export default function Dashboard() {
-  const { intersections, totalVehicles, overallLevel } = useTrafficSimulation();
+  const {
+    intersections,
+    totalVehicles,
+    overallLevel,
+    isDatasetLoading,
+    datasetSource,
+    preferredDatasetSource,
+    setPreferredDatasetSource,
+    datasetName,
+    datasetError,
+    refreshDataset,
+  } = useTrafficSimulation();
 
   const totalCars = intersections.reduce((s, i) => s + i.cars, 0);
   const totalBikes = intersections.reduce((s, i) => s + i.bikes, 0);
@@ -59,14 +71,42 @@ export default function Dashboard() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Traffic Dashboard</h2>
         <p className="text-sm text-muted-foreground">Real-time AI-powered traffic monitoring</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <select
+            value={preferredDatasetSource}
+            onChange={(event) => setPreferredDatasetSource(event.target.value as "online" | "local")}
+            className="rounded-md border bg-background px-3 py-2 text-xs"
+          >
+            <option value="online">Online dataset (London DfT)</option>
+            <option value="local">Local simulated dataset</option>
+          </select>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isDatasetLoading}
+            onClick={() => refreshDataset()}
+            className="h-8 gap-2 text-xs"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isDatasetLoading ? "animate-spin" : ""}`} />
+            Refresh dataset
+          </Button>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Dataset:{" "}
+          <span className="font-semibold">
+            {isDatasetLoading ? "Loading online dataset..." : datasetSource === "online" ? datasetName : "Local fallback simulation"}
+          </span>
+          {datasetError ? ` (${datasetError})` : ""}
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Total Vehicles" value={totalVehicles} icon={Activity} color="bg-primary/10 text-primary" />
         <StatCard label="Traffic Level" value={overallLevel} icon={Radio} color={
           overallLevel === "HIGH" ? "bg-traffic-red/10 text-traffic-red" :
-          overallLevel === "MEDIUM" ? "bg-traffic-yellow/10 text-traffic-yellow" :
-          "bg-traffic-green/10 text-traffic-green"
+            overallLevel === "MEDIUM" ? "bg-traffic-yellow/10 text-traffic-yellow" :
+              "bg-traffic-green/10 text-traffic-green"
         } />
         <StatCard label="Active Intersections" value={intersections.length} icon={Timer} color="bg-accent/10 text-accent" />
         <StatCard label="Avg Signal Time" value={`${Math.round(intersections.reduce((s, i) => s + i.signal_time, 0) / intersections.length)}s`} icon={Timer} color="bg-secondary text-secondary-foreground" />

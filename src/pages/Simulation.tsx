@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Camera, Video } from "lucide-react";
+import { Camera, Video, RefreshCw } from "lucide-react";
 import { SignalState } from "@/lib/traffic-data";
 import { useTrafficSimulation } from "@/hooks/use-traffic-simulation";
 import TrafficCameraCanvas from "@/components/TrafficCameraCanvas";
+import LiveTrafficCameras from "@/components/LiveTrafficCameras";
+import { Button } from "@/components/ui/button";
 
 function TrafficLight({ state }: { state: SignalState }) {
   return (
@@ -26,7 +28,15 @@ const DIR_POSITIONS: Record<string, string> = {
 };
 
 export default function Simulation() {
-  const { intersections } = useTrafficSimulation(2000);
+  const {
+    intersections,
+    datasetSource,
+    preferredDatasetSource,
+    setPreferredDatasetSource,
+    datasetName,
+    isDatasetLoading,
+    refreshDataset,
+  } = useTrafficSimulation(2000);
   const selected = intersections[0];
 
   const [phase, setPhase] = useState(0);
@@ -60,11 +70,39 @@ export default function Simulation() {
 
   const totalDetected = camCounts.cars + camCounts.bikes + camCounts.buses + camCounts.trucks;
 
+  if (!selected) {
+    return <div className="text-sm text-muted-foreground">Loading simulation feed...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Signal Simulation</h2>
         <p className="text-sm text-muted-foreground">4-way intersection — {selected.name}</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <select
+            value={preferredDatasetSource}
+            onChange={(event) => setPreferredDatasetSource(event.target.value as "online" | "local")}
+            className="rounded-md border bg-background px-3 py-2 text-xs"
+          >
+            <option value="online">Online dataset (London DfT)</option>
+            <option value="local">Local simulated dataset</option>
+          </select>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isDatasetLoading}
+            onClick={() => refreshDataset()}
+            className="h-8 gap-2 text-xs"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isDatasetLoading ? "animate-spin" : ""}`} />
+            Refresh dataset
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Detection source: {datasetSource === "online" ? datasetName : "Local simulation data"}
+        </p>
       </div>
 
       {/* Simulated Traffic Camera Feed */}
@@ -97,6 +135,8 @@ export default function Simulation() {
           ))}
         </div>
       </div>
+
+      <LiveTrafficCameras datasetSource={datasetSource} datasetName={datasetName} />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         {/* Intersection visual */}
@@ -134,8 +174,8 @@ export default function Simulation() {
                 const state = getState(dir);
                 const cls =
                   state === "GREEN" ? "bg-traffic-green/10 text-traffic-green border-traffic-green/30" :
-                  state === "YELLOW" ? "bg-traffic-yellow/10 text-traffic-yellow border-traffic-yellow/30" :
-                  "bg-traffic-red/10 text-traffic-red border-traffic-red/30";
+                    state === "YELLOW" ? "bg-traffic-yellow/10 text-traffic-yellow border-traffic-yellow/30" :
+                      "bg-traffic-red/10 text-traffic-red border-traffic-red/30";
                 return (
                   <div key={dir} className={`rounded-lg border p-3 text-center ${cls}`}>
                     <p className="text-xs font-semibold uppercase">{dir}</p>
@@ -160,11 +200,10 @@ export default function Simulation() {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground font-medium">Density</span>
-              <span className={`font-bold ${
-                totalDetected > 25 ? "text-traffic-red" :
+              <span className={`font-bold ${totalDetected > 25 ? "text-traffic-red" :
                 totalDetected > 10 ? "text-traffic-yellow" :
-                "text-traffic-green"
-              }`}>{totalDetected > 25 ? "HIGH" : totalDetected > 10 ? "MEDIUM" : "LOW"}</span>
+                  "text-traffic-green"
+                }`}>{totalDetected > 25 ? "HIGH" : totalDetected > 10 ? "MEDIUM" : "LOW"}</span>
             </div>
           </div>
         </div>

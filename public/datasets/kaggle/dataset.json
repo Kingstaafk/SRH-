@@ -1,0 +1,20 @@
+{
+  "name": "Kaggle Dataset: unidpro/real-time-traffic-video-dataset",
+  "description": "Auto-generated manifest for Camera Training page.",
+  "videos": [
+    {
+      "id": "kaggle-1",
+      "title": "Input 001",
+      "path": "/datasets/kaggle/videos/input-001.mov",
+      "split": "train",
+      "suggestedLabel": "MEDIUM"
+    },
+    {
+      "id": "kaggle-2",
+      "title": "Output",
+      "path": "/datasets/kaggle/videos/output.mp4",
+      "split": "train",
+      "suggestedLabel": "MEDIUM"
+    }
+  ]
+}
