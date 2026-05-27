@@ -36,11 +36,13 @@ export default function TrafficMap() {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <select
             value={preferredDatasetSource}
-            onChange={(event) => setPreferredDatasetSource(event.target.value as "online" | "local")}
+            onChange={(event) => setPreferredDatasetSource(event.target.value as "online" | "local" | "delhi" | "lucknow")}
             className="rounded-md border bg-background px-3 py-2 text-xs"
           >
-            <option value="online">Online dataset (London DfT)</option>
-            <option value="local">Local simulated dataset</option>
+            <option value="delhi">🇮🇳 Live Delhi Simulation</option>
+            <option value="lucknow">🇮🇳 Live Lucknow Simulation</option>
+            <option value="online">🇬🇧 Online dataset (London DfT)</option>
+            <option value="local">⚙️ Generic Simulation</option>
           </select>
           <Button
             type="button"
@@ -55,7 +57,13 @@ export default function TrafficMap() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Source: {datasetSource === "online" ? datasetName : "Local simulation points"}
+          Source:{" "}
+          <span className="font-semibold">
+            {datasetSource === "online" ? datasetName :
+             datasetSource === "delhi" ? "🇮🇳 Delhi Live Simulation Points" :
+             datasetSource === "lucknow" ? "🇮🇳 Lucknow Live Simulation Points" :
+             "Generic simulation points"}
+          </span>
         </p>
       </div>
       <div className="overflow-hidden rounded-xl border shadow-sm" style={{ height: "65vh" }}>

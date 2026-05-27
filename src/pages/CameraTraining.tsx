@@ -7,6 +7,27 @@ import * as knnClassifier from "@tensorflow-models/knn-classifier";
 import { Button } from "@/components/ui/button";
 import { getSignalTime, getTrafficLevel } from "@/lib/traffic-data";
 
+
+const DIRECTIONS = ["north", "east", "south", "west"] as const;
+const DIR_LABELS: Record<string, string> = { north: "N", east: "E", south: "S", west: "W" };
+
+const DIR_POSITIONS: Record<string, string> = {
+  north: "top-1 left-1/2 -translate-x-1/2",
+  south: "bottom-1 left-1/2 -translate-x-1/2",
+  east: "right-1 top-1/2 -translate-y-1/2",
+  west: "left-1 top-1/2 -translate-y-1/2",
+};
+
+function TrafficLight({ state }: { state: "RED" | "YELLOW" | "GREEN" }) {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded bg-foreground/90 p-1 shadow-md">
+      <div className={`h-3 w-3 rounded-full transition-all duration-300 ${state === "RED" ? "traffic-light-red" : "traffic-light-off"}`} />
+      <div className={`h-3 w-3 rounded-full transition-all duration-300 ${state === "YELLOW" ? "traffic-light-yellow" : "traffic-light-off"}`} />
+      <div className={`h-3 w-3 rounded-full transition-all duration-300 ${state === "GREEN" ? "traffic-light-green" : "traffic-light-off"}`} />
+    </div>
+  );
+}
+
 type TrafficLabel = "LOW" | "MEDIUM" | "HIGH";
 
 const LABELS: TrafficLabel[] = ["LOW", "MEDIUM", "HIGH"];
@@ -35,6 +56,7 @@ const trafficHints: Record<TrafficLabel, string> = {
 
 export default function CameraTraining() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const detectorRef = useRef<cocoSsd.ObjectDetection | null>(null);
   const featureExtractorRef = useRef<mobilenet.MobileNet | null>(null);
@@ -73,7 +95,7 @@ export default function CameraTraining() {
     setDetectionError(null);
     try {
       await tf.ready();
-      detectorRef.current = await cocoSsd.load({ base: "lite_mobilenet_v2" });
+      detectorRef.current = await cocoSsd.load({ base: "mobilenet_v2" });
       featureExtractorRef.current = await mobilenet.load({ version: 2, alpha: 1 });
       setIsModelsReady(true);
     } catch (error) {
@@ -132,12 +154,55 @@ export default function CameraTraining() {
   const runDetectionFrame = async () => {
     if (!videoRef.current || !detectorRef.current || !featureExtractorRef.current) return;
     const video = videoRef.current;
+    const canvas = canvasRef.current;
     if (video.readyState < 2) {
       rafRef.current = requestAnimationFrame(runDetectionFrame);
       return;
     }
 
-    const detections = await detectorRef.current.detect(video);
+    // Set canvas dimensions to match actual video stream dimensions
+    if (canvas) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.style.width = `${video.clientWidth}px`;
+      canvas.style.height = `${video.clientHeight}px`;
+    }
+
+    const detections = await detectorRef.current.detect(video, 30, 0.35);
+    
+    // Draw bounding boxes on canvas
+    const ctx = canvas?.getContext("2d");
+    if (canvas && ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      detections.forEach((d) => {
+        const [x, y, w, h] = d.bbox;
+
+        // Draw deep electric blue bounding box
+        ctx.strokeStyle = "#2563eb"; // Deep blue
+        ctx.lineWidth = Math.max(3, Math.round(canvas.width / 220));
+        
+        // Neon outer glow
+        ctx.shadowColor = "#3b82f6"; // Glow blue
+        ctx.shadowBlur = 10;
+        ctx.strokeRect(x, y, w, h);
+        ctx.shadowBlur = 0; // reset
+
+        // Label background
+        ctx.fillStyle = "#2563eb";
+        const fontSize = Math.max(12, Math.round(canvas.width / 48));
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        const labelText = `${d.class.toUpperCase()} (${Math.round(d.score * 100)}%)`;
+        const textWidth = ctx.measureText(labelText).width;
+        
+        ctx.fillRect(x - 1, y - fontSize - 8, textWidth + 12, fontSize + 8);
+
+        // Label text
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(labelText, x + 5, y - 6);
+      });
+    }
+
     const counts = { cars: 0, bikes: 0, buses: 0, trucks: 0 };
     detections.forEach((d) => {
       if (d.class === "car") counts.cars += 1;
@@ -184,6 +249,11 @@ export default function CameraTraining() {
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
+    }
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (canvas && ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   };
 
@@ -345,8 +415,9 @@ export default function CameraTraining() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-xl border bg-black p-3">
+        <div className="rounded-xl border bg-black p-3 relative flex items-center justify-center overflow-hidden">
           <video ref={videoRef} className="w-full rounded-md max-h-[540px]" autoPlay playsInline controls />
+          <canvas ref={canvasRef} className="absolute pointer-events-none rounded-md" />
         </div>
 
         <div className="space-y-4">
@@ -386,6 +457,42 @@ export default function CameraTraining() {
               <div className="rounded-md border p-2 text-center">
                 <p className="text-muted-foreground">Trucks</p>
                 <p className="font-semibold">{vehicleBreakdown.trucks}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Traffic Signal Controller Visual Simulator */}
+          <div className="rounded-xl border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">AI Signal Controller Visual</h3>
+              <span className="font-mono text-xs font-bold bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded">
+                TIMER: {simTimer}s
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-center rounded-lg border bg-zinc-950/40 p-4 relative" style={{ minHeight: 220 }}>
+              <div className="relative h-44 w-44">
+                {/* Simulated Roads */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-12 bg-muted-foreground/10 rounded" />
+                <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full h-12 bg-muted-foreground/10 rounded" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-12 bg-muted-foreground/20 rounded" />
+                
+                {/* 4-Way Traffic Lights */}
+                {DIRECTIONS.map((dir) => {
+                  const getVisualSignalState = (d: typeof dir): "RED" | "YELLOW" | "GREEN" => {
+                    const isNS = d === "north" || d === "south";
+                    if (simPhase === "NS_GREEN") return isNS ? "GREEN" : "RED";
+                    if (simPhase === "NS_YELLOW") return isNS ? "YELLOW" : "RED";
+                    if (simPhase === "EW_GREEN") return isNS ? "RED" : "GREEN";
+                    return isNS ? "RED" : "YELLOW"; // EW_YELLOW
+                  };
+                  return (
+                    <div key={dir} className={`absolute ${DIR_POSITIONS[dir]} flex flex-col items-center gap-0.5`}>
+                      <span className="text-[9px] font-extrabold text-muted-foreground/60">{DIR_LABELS[dir]}</span>
+                      <TrafficLight state={getVisualSignalState(dir)} />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

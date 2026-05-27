@@ -33,6 +33,47 @@ const ONLINE_DATASET_CAMERAS: LiveCamera[] = [
   },
 ];
 
+const DELHI_CAMERAS: LiveCamera[] = [
+  {
+    id: "delhi-ito",
+    name: "ITO Crossing Ambient Feed",
+    location: "IP Marg, New Delhi",
+    embedUrl: "https://www.youtube.com/embed/fH-W1T6n4Jg?autoplay=1&mute=1&loop=1&playlist=fH-W1T6n4Jg",
+    sourceUrl: "https://www.youtube.com/watch?v=fH-W1T6n4Jg",
+  },
+  {
+    id: "delhi-cp",
+    name: "Connaught Place Traffic POV",
+    location: "Inner Ring Road, CP, New Delhi",
+    embedUrl: "https://www.youtube.com/embed/fH-W1T6n4Jg?autoplay=1&mute=1&start=120",
+    sourceUrl: "https://www.youtube.com/watch?v=fH-W1T6n4Jg",
+  },
+  {
+    id: "delhi-noida",
+    name: "DND Flyway Expressway Flow",
+    location: "DND Flyway, Delhi-Noida",
+    embedUrl: "https://www.youtube.com/embed/1-iS7LArMPA?autoplay=1&mute=1",
+    sourceUrl: "https://www.youtube.com/watch?v=1-iS7LArMPA",
+  },
+];
+
+const LUCKNOW_CAMERAS: LiveCamera[] = [
+  {
+    id: "lucknow-hazratganj",
+    name: "Hazratganj Atal Chowk Feed",
+    location: "Hazratganj, Lucknow",
+    embedUrl: "https://www.youtube.com/embed/1-iS7LArMPA?autoplay=1&mute=1&start=20",
+    sourceUrl: "https://www.youtube.com/watch?v=1-iS7LArMPA",
+  },
+  {
+    id: "lucknow-gomtinagar",
+    name: "1090 Chauraha View",
+    location: "Gomti Nagar, Lucknow",
+    embedUrl: "https://www.youtube.com/embed/1-iS7LArMPA?autoplay=1&mute=1&start=60",
+    sourceUrl: "https://www.youtube.com/watch?v=1-iS7LArMPA",
+  },
+];
+
 const LOCAL_SIMULATION_CAMERAS: LiveCamera[] = [
   {
     id: "city-traffic-demo-1",
@@ -49,7 +90,11 @@ interface LiveTrafficCamerasProps {
 }
 
 export default function LiveTrafficCameras({ datasetSource, datasetName }: LiveTrafficCamerasProps) {
-  const cameras = datasetSource === "online" ? ONLINE_DATASET_CAMERAS : LOCAL_SIMULATION_CAMERAS;
+  const cameras =
+    datasetSource === "online" ? ONLINE_DATASET_CAMERAS :
+    datasetSource === "delhi" ? DELHI_CAMERAS :
+    datasetSource === "lucknow" ? LUCKNOW_CAMERAS :
+    LOCAL_SIMULATION_CAMERAS;
 
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm space-y-4">

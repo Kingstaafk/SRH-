@@ -1,22 +1,28 @@
 import { useState, useEffect, useCallback } from "react";
-import { IntersectionData, INTERSECTIONS, generateRandomUpdate } from "@/lib/traffic-data";
+import {
+  IntersectionData,
+  INTERSECTIONS,
+  DELHI_INTERSECTIONS,
+  LUCKNOW_INTERSECTIONS,
+  generateRandomUpdate,
+} from "@/lib/traffic-data";
 import { fetchOnlineTrafficIntersections, ONLINE_DATASET_NAME } from "@/lib/online-traffic-dataset";
 
-export type TrafficDatasetSource = "online" | "local";
+export type TrafficDatasetSource = "online" | "local" | "delhi" | "lucknow";
 const DATASET_SOURCE_KEY = "traffic.dataset.source";
 
 export function useTrafficSimulation(intervalMs = 3000) {
   const getInitialPreferredSource = (): TrafficDatasetSource => {
     if (typeof window === "undefined") {
-      return "online";
+      return "delhi";
     }
     const saved = window.localStorage.getItem(DATASET_SOURCE_KEY);
-    return saved === "local" || saved === "online" ? saved : "online";
+    return saved === "local" || saved === "online" || saved === "delhi" || saved === "lucknow" ? saved : "delhi";
   };
 
-  const [intersections, setIntersections] = useState<IntersectionData[]>(INTERSECTIONS);
+  const [intersections, setIntersections] = useState<IntersectionData[]>(DELHI_INTERSECTIONS);
   const [isDatasetLoading, setIsDatasetLoading] = useState(true);
-  const [datasetSource, setDatasetSource] = useState<TrafficDatasetSource>("local");
+  const [datasetSource, setDatasetSource] = useState<TrafficDatasetSource>("delhi");
   const [preferredDatasetSource, setPreferredDatasetSource] = useState<TrafficDatasetSource>(getInitialPreferredSource);
   const [datasetError, setDatasetError] = useState<string | null>(null);
 
@@ -25,6 +31,18 @@ export function useTrafficSimulation(intervalMs = 3000) {
       try {
         setIsDatasetLoading(true);
         setDatasetError(null);
+
+        if (source === "delhi") {
+          setIntersections(DELHI_INTERSECTIONS.map(generateRandomUpdate));
+          setDatasetSource("delhi");
+          return;
+        }
+
+        if (source === "lucknow") {
+          setIntersections(LUCKNOW_INTERSECTIONS.map(generateRandomUpdate));
+          setDatasetSource("lucknow");
+          return;
+        }
 
         if (source === "local") {
           setIntersections(INTERSECTIONS.map(generateRandomUpdate));
@@ -38,13 +56,13 @@ export function useTrafficSimulation(intervalMs = 3000) {
           setIntersections(onlineIntersections);
           setDatasetSource("online");
         } else {
-          setIntersections(INTERSECTIONS.map(generateRandomUpdate));
-          setDatasetSource("local");
+          setIntersections(DELHI_INTERSECTIONS.map(generateRandomUpdate));
+          setDatasetSource("delhi");
           setDatasetError("Online dataset returned no intersections.");
         }
       } catch (error) {
-        setIntersections(INTERSECTIONS.map(generateRandomUpdate));
-        setDatasetSource("local");
+        setIntersections(DELHI_INTERSECTIONS.map(generateRandomUpdate));
+        setDatasetSource("delhi");
         setDatasetError(error instanceof Error ? error.message : "Failed to load online dataset.");
       } finally {
         setIsDatasetLoading(false);

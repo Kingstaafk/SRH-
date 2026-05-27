@@ -39,10 +39,11 @@ function pickVehicleType() {
 
 interface TrafficCameraCanvasProps {
   getSignalState: (dir: string) => SignalState;
+  selectedIntersection?: IntersectionData;
   onVehicleCount?: (counts: { cars: number; bikes: number; buses: number; trucks: number }) => void;
 }
 
-export default function TrafficCameraCanvas({ getSignalState, onVehicleCount }: TrafficCameraCanvasProps) {
+export default function TrafficCameraCanvas({ getSignalState, selectedIntersection, onVehicleCount }: TrafficCameraCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const vehiclesRef = useRef<Vehicle[]>([]);
   const nextIdRef = useRef(0);
@@ -65,6 +66,48 @@ export default function TrafficCameraCanvas({ getSignalState, onVehicleCount }: 
 
   // Stop lines
   const stopMargin = 8;
+
+  const spawnSpecificVehicle = useCallback((type: Vehicle["type"], lane: Vehicle["lane"]) => {
+    const vt = VEHICLE_TYPES.find(v => v.type === type) || VEHICLE_TYPES[0];
+    const color = VEHICLE_COLORS[Math.floor(Math.random() * VEHICLE_COLORS.length)];
+    const speed = 1.2 + Math.random() * 1.0;
+
+    let x = 0, y = 0, w = vt.w, h = vt.h;
+
+    if (lane === "east" || lane === "west") {
+      [w, h] = [h, w];
+    }
+
+    switch (lane) {
+      case "north":
+        x = cx + laneOffset / 2 - w / 2 + (Math.random() - 0.5) * 4;
+        y = -h - Math.random() * 20;
+        break;
+      case "south":
+        x = cx - laneOffset / 2 - w / 2 + (Math.random() - 0.5) * 4;
+        y = H + Math.random() * 20;
+        break;
+      case "east":
+        x = W + Math.random() * 20;
+        y = cy + laneOffset / 2 - h / 2 + (Math.random() - 0.5) * 4;
+        break;
+      case "west":
+        x = -w - Math.random() * 20;
+        y = cy - laneOffset / 2 - h / 2 + (Math.random() - 0.5) * 4;
+        break;
+    }
+
+    vehiclesRef.current.push({
+      id: nextIdRef.current++,
+      x, y, lane,
+      type,
+      speed,
+      color,
+      width: w,
+      height: h,
+      waiting: false,
+    });
+  }, [cx, cy, laneOffset, H, W]);
 
   const spawnVehicle = useCallback((lane: Vehicle["lane"]) => {
     const vt = pickVehicleType();
@@ -119,20 +162,50 @@ export default function TrafficCameraCanvas({ getSignalState, onVehicleCount }: 
       frameRef.current++;
       const frame = frameRef.current;
 
-      // Spawn vehicles periodically
-      if (frame % 45 === 0) {
-        const lanes: Vehicle["lane"][] = ["north", "south", "east", "west"];
-        const lane = lanes[Math.floor(Math.random() * lanes.length)];
-        // Don't overpopulate
-        const countInLane = vehiclesRef.current.filter(v => v.lane === lane).length;
-        if (countInLane < 8) spawnVehicle(lane);
-      }
-      // Extra spawn for busier feel
-      if (frame % 70 === 35) {
-        const lanes: Vehicle["lane"][] = ["north", "south", "east", "west"];
-        const lane = lanes[Math.floor(Math.random() * lanes.length)];
-        const countInLane = vehiclesRef.current.filter(v => v.lane === lane).length;
-        if (countInLane < 6) spawnVehicle(lane);
+      // Spawn vehicles dynamically to match selected intersection datafeed counts!
+      if (selectedIntersection) {
+        const currentCounts = {
+          cars: vehiclesRef.current.filter(v => v.type === "car").length,
+          bikes: vehiclesRef.current.filter(v => v.type === "bike").length,
+          buses: vehiclesRef.current.filter(v => v.type === "bus").length,
+          trucks: vehiclesRef.current.filter(v => v.type === "truck").length,
+        };
+
+        const targetCounts = {
+          cars: selectedIntersection.cars,
+          bikes: selectedIntersection.bikes,
+          buses: selectedIntersection.buses,
+          trucks: selectedIntersection.trucks,
+        };
+
+        if (frame % 15 === 0) {
+          const lanes: Vehicle["lane"][] = ["north", "south", "east", "west"];
+          const lane = lanes[Math.floor(Math.random() * lanes.length)];
+
+          if (currentCounts.cars < targetCounts.cars) {
+            spawnSpecificVehicle("car", lane);
+          } else if (currentCounts.bikes < targetCounts.bikes) {
+            spawnSpecificVehicle("bike", lane);
+          } else if (currentCounts.buses < targetCounts.buses) {
+            spawnSpecificVehicle("bus", lane);
+          } else if (currentCounts.trucks < targetCounts.trucks) {
+            spawnSpecificVehicle("truck", lane);
+          }
+        }
+      } else {
+        // Fallback to random spawning
+        if (frame % 45 === 0) {
+          const lanes: Vehicle["lane"][] = ["north", "south", "east", "west"];
+          const lane = lanes[Math.floor(Math.random() * lanes.length)];
+          const countInLane = vehiclesRef.current.filter(v => v.lane === lane).length;
+          if (countInLane < 8) spawnVehicle(lane);
+        }
+        if (frame % 70 === 35) {
+          const lanes: Vehicle["lane"][] = ["north", "south", "east", "west"];
+          const lane = lanes[Math.floor(Math.random() * lanes.length)];
+          const countInLane = vehiclesRef.current.filter(v => v.lane === lane).length;
+          if (countInLane < 6) spawnVehicle(lane);
+        }
       }
 
       // --- Draw scene ---

@@ -74,11 +74,13 @@ export default function Dashboard() {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <select
             value={preferredDatasetSource}
-            onChange={(event) => setPreferredDatasetSource(event.target.value as "online" | "local")}
+            onChange={(event) => setPreferredDatasetSource(event.target.value as "online" | "local" | "delhi" | "lucknow")}
             className="rounded-md border bg-background px-3 py-2 text-xs"
           >
-            <option value="online">Online dataset (London DfT)</option>
-            <option value="local">Local simulated dataset</option>
+            <option value="delhi">🇮🇳 Live Delhi Simulation</option>
+            <option value="lucknow">🇮🇳 Live Lucknow Simulation</option>
+            <option value="online">🇬🇧 Online dataset (London DfT)</option>
+            <option value="local">⚙️ Generic Simulation</option>
           </select>
           <Button
             type="button"
@@ -95,7 +97,11 @@ export default function Dashboard() {
         <p className="mt-1 text-xs text-muted-foreground">
           Dataset:{" "}
           <span className="font-semibold">
-            {isDatasetLoading ? "Loading online dataset..." : datasetSource === "online" ? datasetName : "Local fallback simulation"}
+            {isDatasetLoading ? "Loading..." : 
+             datasetSource === "online" ? datasetName : 
+             datasetSource === "delhi" ? "🇮🇳 Delhi Live Simulation" :
+             datasetSource === "lucknow" ? "🇮🇳 Lucknow Live Simulation" :
+             "Generic simulation"}
           </span>
           {datasetError ? ` (${datasetError})` : ""}
         </p>
