@@ -9,7 +9,7 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border bg-card p-5 shadow-sm"
+      className="rounded-xl border bg-card p-3 min-[380px]:p-4 sm:p-5 shadow-sm"
     >
       <div className="flex items-center justify-between">
         <div>

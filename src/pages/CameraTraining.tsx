@@ -510,14 +510,14 @@ export default function CameraTraining() {
             </p>
 
             {LABELS.map((label) => (
-              <div key={label} className="flex items-center justify-between gap-2 rounded-md border p-2">
+              <div key={label} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border p-3">
                 <div>
                   <p className="text-sm font-semibold">{label}</p>
                   <p className="text-xs text-muted-foreground">{trafficHints[label]}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono">{sampleCounts[label]} samples</span>
-                  <Button type="button" size="sm" variant="outline" className="gap-1" onClick={() => addTrainingSample(label)}>
+                <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-2 sm:pt-0">
+                  <span className="text-xs font-mono text-muted-foreground">{sampleCounts[label]} samples</span>
+                  <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => addTrainingSample(label)}>
                     <Brain className="h-3.5 w-3.5" />
                     Add
                   </Button>
