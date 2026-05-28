@@ -380,8 +380,8 @@ export default function Simulation() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         {/* Intersection visual */}
-        <div className="flex items-center justify-center rounded-xl border bg-card p-6 shadow-sm" style={{ minHeight: 420 }}>
-          <div className="relative h-80 w-80">
+        <div className="flex items-center justify-center rounded-xl border bg-card p-4 sm:p-6 shadow-sm overflow-hidden" style={{ minHeight: 380 }}>
+          <div className="relative h-80 w-80 origin-center scale-[0.75] min-[380px]:scale-[0.85] sm:scale-100 transition-transform">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-24 bg-muted-foreground/10 rounded" />
             <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full h-24 bg-muted-foreground/10 rounded" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-24 w-24 bg-muted-foreground/20 rounded" />

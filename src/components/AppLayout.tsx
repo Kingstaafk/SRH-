@@ -25,7 +25,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <p className="text-[11px] text-muted-foreground leading-none">Intelligent Signal Control</p>
             </div>
           </div>
-          <nav className="flex items-center gap-1">
+          <nav className="hidden sm:flex items-center gap-1">
             {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
               const active = pathname === to;
               return (
@@ -45,7 +45,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
       </header>
-      <main className="container py-6">{children}</main>
+      <main className="container py-6 pb-24 sm:pb-6">{children}</main>
+
+      {/* Bottom Mobile Navigation */}
+      <nav className="flex sm:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-card/90 backdrop-blur-md justify-around items-center h-16 px-2 shadow-lg border-border">
+        {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
+          const active = pathname === to;
+          return (
+            <Link
+              key={to}
+              to={to}
+              className={`flex flex-col items-center justify-center gap-1 w-20 h-full transition-all ${
+                active
+                  ? "text-primary font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className={`h-5 w-5 transition-transform ${active ? "scale-110 text-primary" : ""}`} />
+              <span className="text-[10px] tracking-tight">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
