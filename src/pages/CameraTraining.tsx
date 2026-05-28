@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Upload, Brain, Play, Square, Loader2 } from "lucide-react";
+import { Camera, Upload, Brain, Play, Square, Loader2, RefreshCw } from "lucide-react";
 import * as tf from "@tensorflow/tfjs";
 import * as cocoSsd from "@tensorflow-models/coco-ssd";
 import * as mobilenet from "@tensorflow-models/mobilenet";
@@ -88,6 +88,8 @@ export default function CameraTraining() {
     MEDIUM: 0,
     HIGH: 0,
   });
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [isCameraActive, setIsCameraActive] = useState(false);
 
   const loadModels = async () => {
     if (isModelsReady || isLoadingModels) return;
@@ -99,23 +101,12 @@ export default function CameraTraining() {
       featureExtractorRef.current = await mobilenet.load({ version: 2, alpha: 1 });
       setIsModelsReady(true);
     } catch (error) {
-      setDetectionError(error instanceof Error ? error.message : "Failed to load models.");
+      console.error("AI Model Initialization Failure:", error);
+      setDetectionError(
+        "Internet Connection Required: Real-time AI detection requires an active internet connection to download the lightweight pre-trained models (COCO-SSD & MobileNet) upon first use. Please check your network connectivity and try again."
+      );
     } finally {
       setIsLoadingModels(false);
-    }
-  };
-
-  const startCamera = async () => {
-    await loadModels();
-    if (!videoRef.current) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      streamRef.current = stream;
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
-      setDetectionError(null);
-    } catch (error) {
-      setDetectionError(error instanceof Error ? error.message : "Unable to access camera.");
     }
   };
 
@@ -127,12 +118,48 @@ export default function CameraTraining() {
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+    setIsCameraActive(false);
+  };
+
+  const startCamera = async (mode: "user" | "environment" = facingMode) => {
+    await loadModels();
+    if (!videoRef.current) return;
+    try {
+      stopCamera(); // free current video hardware stream first
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: mode },
+        audio: false
+      });
+      streamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      await videoRef.current.play();
+      setDetectionError(null);
+      setIsCameraActive(true);
+    } catch (error) {
+      console.error("Camera Access Error:", error);
+      setDetectionError(
+        error instanceof Error && error.name === "NotAllowedError"
+          ? "Camera Permission Denied: Please allow camera permissions in your settings."
+          : "Unable to access the camera hardware."
+      );
+      setIsCameraActive(false);
+    }
+  };
+
+  const toggleCamera = async () => {
+    const nextMode = facingMode === "user" ? "environment" : "user";
+    setFacingMode(nextMode);
+    if (streamRef.current) {
+      await startCamera(nextMode);
+    }
   };
 
   const useVideoFile = async (file: File) => {
     await loadModels();
     if (!videoRef.current) return;
     stopCamera();
+    setIsCameraActive(false);
     const objectUrl = URL.createObjectURL(file);
     videoRef.current.src = objectUrl;
     videoRef.current.muted = true;
@@ -144,6 +171,7 @@ export default function CameraTraining() {
     await loadModels();
     if (!videoRef.current) return;
     stopCamera();
+    setIsCameraActive(false);
     videoRef.current.srcObject = null;
     videoRef.current.src = videoPath;
     videoRef.current.muted = true;
@@ -398,6 +426,18 @@ export default function CameraTraining() {
               Loading AI models...
             </span>
           )}
+          {isCameraActive && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2 border-indigo-500/30 hover:border-indigo-500 bg-indigo-500/5 hover:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 h-9"
+              onClick={toggleCamera}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Flip Camera
+            </Button>
+          )}
         </div>
         <input
           ref={fileInputRef}
@@ -411,7 +451,15 @@ export default function CameraTraining() {
             }
           }}
         />
-        {detectionError && <p className="text-sm text-destructive">{detectionError}</p>}
+        {detectionError && (
+          <div className="rounded-lg border border-destructive/35 bg-destructive/5 p-3.5 text-sm text-destructive flex flex-col gap-1 shadow-sm">
+            <p className="font-bold flex items-center gap-1.5 text-xs tracking-wide uppercase">
+              <span>⚠️</span>
+              {detectionError.includes("Internet Connection Required") ? "Network Connection Required" : "System Alert"}
+            </p>
+            <p className="text-xs text-muted-foreground font-normal leading-relaxed">{detectionError}</p>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">

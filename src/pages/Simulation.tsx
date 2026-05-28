@@ -63,10 +63,16 @@ export default function Simulation() {
     try {
       if (!modelReady && !detectorRef.current) {
         setIsModelLoading(true);
-        await tf.ready();
-        detectorRef.current = await cocoSsd.load({ base: "mobilenet_v2" });
-        setModelReady(true);
-        setIsModelLoading(false);
+        try {
+          await tf.ready();
+          detectorRef.current = await cocoSsd.load({ base: "mobilenet_v2" });
+          setModelReady(true);
+        } catch (modelErr) {
+          console.error("AI Model load error:", modelErr);
+          throw new Error("Internet Connection Required: Live AI detection requires an active internet connection to download the lightweight pre-trained model (COCO-SSD) upon first use. Please check your network and try again.");
+        } finally {
+          setIsModelLoading(false);
+        }
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -81,7 +87,14 @@ export default function Simulation() {
       setFeedMode("webcam");
     } catch (err) {
       console.error(err);
-      setWebcamError(err instanceof Error ? err.message : "Failed to access webcam");
+      let errorMsg = "Failed to access webcam";
+      if (err instanceof Error) {
+        errorMsg = err.message;
+        if (err.name === "NotAllowedError") {
+          errorMsg = "Camera Permission Denied: Please allow camera access in your settings.";
+        }
+      }
+      setWebcamError(errorMsg);
       setFeedMode("simulated");
       setIsModelLoading(false);
     }
